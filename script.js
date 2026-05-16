@@ -891,7 +891,9 @@ const getTextFromDataUrl = (dataUrl) => {
         const base64 = dataUrl.split(',')[1];
         const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
         return new TextDecoder().decode(bytes);
-      } catch { return null; }
+      } catch (e) {
+        return null;
+      }
     };
 
     // モーダル
