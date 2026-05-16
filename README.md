@@ -1,4 +1,4 @@
-# P2PChat_ver1.05-
+# P2PChat_ver1.05beta
 Peer.jsを使用した静止チャットwebサイトです。
 
 # アップデート-Update
