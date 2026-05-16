@@ -83,7 +83,7 @@ const isTextFile = (mimeType, fileName) => {
     if (binaryMimes.some(m => mimeType.startsWith(m))) return false;
     if (mimeType.startsWith('text/')) return true;
     if (['application/json', 'application/xml', 'application/javascript',
-         'application/typescript', 'application/x-sh'].includes(mimeType)) return true;
+      'application/typescript', 'application/x-sh'].includes(mimeType)) return true;
   }
 
   if (fileName) {
@@ -220,43 +220,8 @@ function App() {
         mimeType: selectedFile.type,
         ...encrypted,
       });
-      // 送信側はDataURLで保持（テキストプレビューのため）
-      const dataUrl = `data:${selectedFile.type || 'application/octet-stream'};base64,${base64Data}`;
-      setMessages(prev => [...prev, {
-        sender: 'local',
-        text: `${selectedFile.name} (${(selectedFile.size / 1024).toFixed(2)} KB)`,
-        timestamp: formatTimestamp(),
-        isFile: true,
-        fileName: selectedFile.name,
-        fileData: dataUrl,
-        mimeType: selectedFile.type,
-      }]);
-      setSelectedFile(null);
-      showNotification('fileSent');
     } catch (err) {
       console.error('File send error:', err);
-      showNotification('fileTransferError');
-    }
-  };
-
-  const receiveFile = async (data) => {
-    try {
-      const decrypted = await decryptFileLocal(data);
-      if (!decrypted) return;
-      const base64String = arrayBufferToBase64(decrypted);
-      const dataUrl = `data:${data.mimeType};base64,${base64String}`;
-      setMessages(prev => [...prev, {
-        sender: 'remote',
-        text: `${data.fileName} (${(data.fileSize / 1024).toFixed(2)} KB)`,
-        timestamp: formatTimestamp(),
-        isFile: true,
-        fileName: data.fileName,
-        fileData: dataUrl,
-        mimeType: data.mimeType,
-      }]);
-      showNotification('fileReceived');
-    } catch (err) {
-      console.error('File receive error:', err);
       showNotification('fileTransferError');
     }
   };
@@ -297,7 +262,7 @@ function App() {
           gainNode.gain.value = 2.5;
           source.connect(gainNode);
           gainNode.connect(audioCtx.destination);
-          remoteAudioRef.current.play().catch(() => {});
+          remoteAudioRef.current.play().catch(() => { });
         }
         setCallStatus('ongoing');
         setMessages(prev => [...prev, { sender: 'system', text: '通話中...', timestamp: formatTimestamp() }]);
@@ -333,7 +298,7 @@ function App() {
           gainNode.gain.value = 2.5;
           source.connect(gainNode);
           gainNode.connect(audioCtx.destination);
-          remoteAudioRef.current.play().catch(() => {});
+          remoteAudioRef.current.play().catch(() => { });
         }
         setMessages(prev => [...prev, { sender: 'system', text: '通話中...', timestamp: formatTimestamp() }]);
       });
@@ -383,7 +348,7 @@ function App() {
         // iOSはsinkId非対応のためAudioContextで代替
         if (!audio.setSinkId) {
           // iOSではspeakerへの切り替えはplay()で自動的に行われる場合が多い
-          audio.play().catch(() => {});
+          audio.play().catch(() => { });
         }
       }
       setIsSpeaker(s => !s);
@@ -657,7 +622,7 @@ function App() {
             <div className="text-gray-400 text-sm mb-12">発信中...</div>
             <div className="w-4 h-4 rounded-full bg-yellow-400 animate-ping mb-16"></div>
             <button onClick={endCall} className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center shadow-xl">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="white"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z" transform="rotate(135 12 12)"/></svg>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="white"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z" transform="rotate(135 12 12)" /></svg>
             </button>
           </div>
         ) : (
@@ -690,17 +655,17 @@ function App() {
                   className={`w-14 h-14 rounded-full flex items-center justify-center ${isMuted ? 'bg-red-500' : 'bg-gray-700'}`}
                 >
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                    <line x1="12" y1="19" x2="12" y2="23"/>
-                    <line x1="8" y1="23" x2="16" y2="23"/>
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                    <line x1="12" y1="19" x2="12" y2="23" />
+                    <line x1="8" y1="23" x2="16" y2="23" />
                   </svg>
                 </button>
                 <span className="text-gray-400 text-xs">{isMuted ? 'ミュート中' : 'ミュート'}</span>
               </div>
               <div className="flex flex-col items-center gap-1">
                 <button onClick={endCall} className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center shadow-xl">
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="white"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z" transform="rotate(135 12 12)"/></svg>
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="white"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z" transform="rotate(135 12 12)" /></svg>
                 </button>
                 <span className="text-gray-400 text-xs">終了</span>
               </div>
@@ -710,9 +675,9 @@ function App() {
                   className={`w-14 h-14 rounded-full flex items-center justify-center ${isSpeaker ? 'bg-green-600' : 'bg-gray-700'}`}
                 >
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
-                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
-                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
                   </svg>
                 </button>
                 <span className="text-gray-400 text-xs">{isSpeaker ? 'スピーカー' : 'イヤホン'}</span>
@@ -876,7 +841,7 @@ function App() {
                   className="bg-green-500 text-white w-12 h-12 rounded-full hover:bg-green-600 disabled:opacity-50 transition-colors flex items-center justify-center flex-shrink-0"
                 >
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.62 3.38 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.77a16 16 0 0 0 6.29 6.29l1.85-1.85a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.62 3.38 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.77a16 16 0 0 0 6.29 6.29l1.85-1.85a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
                   </svg>
                 </button>
                 <input
@@ -931,7 +896,9 @@ const getTextFromDataUrl = (dataUrl) => {
     const base64 = dataUrl.split(',')[1];
     const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
     return new TextDecoder().decode(bytes);
-  } catch { return null; }
+  } catch (e) {
+    return null;
+  }
 };
 
 // モーダル
