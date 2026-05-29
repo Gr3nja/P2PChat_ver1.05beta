@@ -79,7 +79,11 @@
     "fileSent": "ファイルを送信しました",
     "fileReceived": "ファイルを受信しました",
     "fileTransferError": "ファイル転送エラー",
-    "dragDropFile": "ファイルをここにドラッグアンドドロップ"
+    "dragDropFile": "ファイルをここにドラッグアンドドロップ",
+    "qrCode": "QRコード",
+    "scanToConnect": "このコードを読み取るかURLを使用してください",
+    "copyShareUrl": "共有URLをクリップボードにコピーしました",
+    "close": "閉じる"
   },
   "zh": {
     "title": "P2P加密聊天",
@@ -120,7 +124,11 @@
     "fileSent": "文件已发送",
     "fileReceived": "已接收文件",
     "fileTransferError": "文件传输错误",
-    "dragDropFile": "将文件拖放到此处"
+    "dragDropFile": "将文件拖放到此处",
+    "qrCode": "二维码",
+    "scanToConnect": "扫描此代码或使用URL",
+    "copyShareUrl": "共享URL已复制到剪贴板",
+    "close": "关闭"
   },
   "hi": {
     "title": "P2P एन्क्रिप्टेड चैट",
@@ -161,7 +169,11 @@
     "fileSent": "फाइल सफलतापूर्वक भेजी गई",
     "fileReceived": "फाइल प्राप्त हुई",
     "fileTransferError": "फाइल स्थानांतरण त्रुटि",
-    "dragDropFile": "फाइलों को यहाँ खींचें और छोड़ें"
+    "dragDropFile": "फाइलों को यहाँ खींचें और छोड़ें",
+    "qrCode": "QR कोड",
+    "scanToConnect": "इस कोड को स्कैन करें या URL का उपयोग करें",
+    "copyShareUrl": "शेयर URL क्लिपबोर्ड पर कॉपी किया गया",
+    "close": "बंद करें"
   },
   "es": {
     "title": "Chat Encriptado P2P",
@@ -202,6 +214,10 @@
     "fileSent": "Archivo enviado exitosamente",
     "fileReceived": "Archivo recibido",
     "fileTransferError": "Error en la transferencia de archivo",
-    "dragDropFile": "Arrastra y suelta archivos aquí"
+    "dragDropFile": "Arrastra y suelta archivos aquí",
+    "qrCode": "Código QR",
+    "scanToConnect": "Escanea este código o usa la URL",
+    "copyShareUrl": "URL compartida copiada al portapapeles",
+    "close": "Cerrar"
   }
 }

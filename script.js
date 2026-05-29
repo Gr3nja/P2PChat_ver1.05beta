@@ -124,6 +124,7 @@ function App() {
 
   const peerInstance = useRef(null);
   const connRef = useRef(null);
+  const pendingFileTransfers = useRef({});
   const cryptoKey = useRef(null);
   const myKeyPair = useRef(null);
   const messagesEndRef = useRef(null);
@@ -132,6 +133,18 @@ function App() {
   const fileInputRef = useRef(null);
   const [replyTo, setReplyTo] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [fileTransferProgress, setFileTransferProgress] = useState({
+    sendingCount: 0,
+    sendingTotal: 0,
+    receivingCount: 0,
+    receivingTotal: 0,
+    sendingFileName: '',
+    receivingFileName: '',
+    sendingState: 'idle',
+    receivingState: 'idle',
+  });
+  const [qrDataUrl, setQrDataUrl] = useState('');
+  const [showQr, setShowQr] = useState(false);
 
   useEffect(() => {
     localStorage.setItem('language', language);
@@ -179,6 +192,106 @@ function App() {
     return `data:${mimeType};base64,${base64}`;
   };
 
+  const getShareUrl = (peerIdToShare) => {
+    const isFileUrl = window.location.protocol === 'file:';
+    const baseUrl = isFileUrl
+      ? window.location.href.split('?')[0].split('#')[0]
+      : `${window.location.origin}${window.location.pathname}`;
+    return `${baseUrl}?target=${encodeURIComponent(peerIdToShare)}`;
+  };
+
+  const generateQrCode = async () => {
+    if (!peerId || !window.QRCode) return;
+    try {
+      const url = getShareUrl(peerId);
+      const dataUrl = await window.QRCode.toDataURL(url, { errorCorrectionLevel: 'H', width: 180, margin: 2 });
+      setQrDataUrl(dataUrl);
+      setShowQr(true);
+    } catch (err) {
+      console.error('QR code generation failed:', err);
+    }
+  };
+
+  const generateTransferId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+
+  const chunkString = (text, size) => {
+    const chunks = [];
+    for (let i = 0; i < text.length; i += size) {
+      chunks.push(text.slice(i, i + size));
+    }
+    return chunks;
+  };
+
+  const handleIncomingFileMeta = (data) => {
+    if (!data.transferId || typeof data.totalChunks !== 'number') return;
+    pendingFileTransfers.current[data.transferId] = {
+      fileName: data.fileName || 'unknown',
+      mimeType: data.mimeType || 'application/octet-stream',
+      iv: data.iv,
+      totalChunks: data.totalChunks,
+      chunks: new Array(data.totalChunks),
+      receivedChunks: 0,
+    };
+    setFileTransferProgress(prev => ({
+      ...prev,
+      receivingCount: 0,
+      receivingTotal: data.totalChunks,
+      receivingFileName: data.fileName || 'unknown',
+      receivingState: 'receiving',
+    }));
+  };
+
+  const completeIncomingFileTransfer = async (transferId) => {
+    const transfer = pendingFileTransfers.current[transferId];
+    if (!transfer) return;
+
+    const encryptedBase64 = transfer.chunks.join('');
+    const decryptedBuffer = await decryptFileLocal({ iv: transfer.iv, encrypted: encryptedBase64 });
+    if (!decryptedBuffer) {
+      showNotification('fileTransferError');
+      delete pendingFileTransfers.current[transferId];
+      return;
+    }
+
+    const fileDataUrl = createDataUrl(decryptedBuffer, transfer.mimeType);
+    const incomingMessage = {
+      sender: 'remote',
+      isFile: true,
+      fileName: transfer.fileName,
+      mimeType: transfer.mimeType,
+      fileData: fileDataUrl,
+      text: transfer.fileName,
+      timestamp: formatTimestamp(),
+    };
+    setMessages(prev => [...prev, incomingMessage]);
+    setFileTransferProgress(prev => ({
+      ...prev,
+      receivingCount: transfer.totalChunks,
+      receivingState: 'received',
+    }));
+    delete pendingFileTransfers.current[transferId];
+    showNotification('fileReceived');
+  };
+
+  const handleIncomingFileChunk = async (data) => {
+    if (!data.transferId || typeof data.index !== 'number' || typeof data.data !== 'string') return;
+    const transfer = pendingFileTransfers.current[data.transferId];
+    if (!transfer) return;
+
+    if (!transfer.chunks[data.index]) {
+      transfer.chunks[data.index] = data.data;
+      transfer.receivedChunks += 1;
+    }
+    setFileTransferProgress(prev => ({
+      ...prev,
+      receivingCount: transfer.receivedChunks,
+    }));
+
+    if (transfer.receivedChunks >= transfer.totalChunks) {
+      await completeIncomingFileTransfer(data.transferId);
+    }
+  };
+
   const receiveFile = async (data) => {
     if (!data || !data.encrypted || !data.iv) {
       showNotification('fileTransferError');
@@ -211,6 +324,12 @@ function App() {
     });
   };
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const target = params.get('target') || params.get('peer');
+    if (target) setRemotePeerId(target);
+  }, []);
+
   const handleTyping = () => {
     if (connRef.current) {
       connRef.current.send({ type: 'typing', user: userName });
@@ -227,7 +346,13 @@ function App() {
     if (!file) return;
     if (connRef.current && cryptoKey.current) {
       setSelectedFile(file);
-      showNotification('fileSent');
+      setFileTransferProgress(prev => ({
+        ...prev,
+        sendingCount: 0,
+        sendingTotal: 0,
+        sendingFileName: file.name,
+        sendingState: 'ready',
+      }));
     } else {
       showNotification('noConnection');
     }
@@ -253,13 +378,36 @@ function App() {
       const base64Data = await fileToBase64(selectedFile);
       const encrypted = await encryptFileLocal(base64Data);
       if (!encrypted) return;
+
+      const transferId = generateTransferId();
+      const chunks = chunkString(encrypted.encrypted, 16 * 1024);
+      setFileTransferProgress(prev => ({
+        ...prev,
+        sendingCount: 0,
+        sendingTotal: chunks.length,
+        sendingState: 'sending',
+      }));
+
       connRef.current.send({
-        type: 'file-data',
+        type: 'file-meta',
+        transferId,
         fileName: selectedFile.name,
         fileSize: selectedFile.size,
         mimeType: selectedFile.type,
-        ...encrypted,
+        iv: encrypted.iv,
+        totalChunks: chunks.length,
       });
+
+      for (let index = 0; index < chunks.length; index += 1) {
+        connRef.current.send({ type: 'file-chunk', transferId, index, data: chunks[index] });
+        if ((index + 1) % 3 === 0) {
+          await new Promise((resolve) => setTimeout(resolve, 0));
+        }
+        setFileTransferProgress(prev => ({
+          ...prev,
+          sendingCount: index + 1,
+        }));
+      }
 
       const fileBuffer = await selectedFile.arrayBuffer();
       const fileDataUrl = createDataUrl(fileBuffer, selectedFile.type || 'application/octet-stream');
@@ -273,6 +421,12 @@ function App() {
         timestamp: formatTimestamp(),
       }]);
       setSelectedFile(null);
+      setFileTransferProgress(prev => ({
+        ...prev,
+        sendingState: 'sent',
+        sendingCount: chunks.length,
+      }));
+      showNotification('fileSent');
     } catch (err) {
       console.error('File send error:', err);
       showNotification('fileTransferError');
@@ -444,6 +598,10 @@ function App() {
       setIsTyping(false);
     } else if (data.type === 'user-info') {
       setRemoteName(data.name);
+    } else if (data.type === 'file-meta') {
+      handleIncomingFileMeta(data);
+    } else if (data.type === 'file-chunk') {
+      handleIncomingFileChunk(data);
     } else if (data.type === 'file-data') {
       receiveFile(data);
     } else if (data.type === 'call-request') {
@@ -752,6 +910,20 @@ function App() {
       {/* リモート音声出力 */}
       <audio ref={remoteAudioRef} autoPlay />
 
+      {showQr && qrDataUrl && (
+        <Modal onClose={() => setShowQr(false)}>
+          <div className="bg-white rounded-3xl p-6 max-w-[90vw] w-[320px] sm:w-[360px] text-center shadow-2xl">
+            <img src={qrDataUrl} alt="QR Code" className="mx-auto w-56 h-56" />
+            <button
+              onClick={() => setShowQr(false)}
+              className="mt-4 bg-gray-800 text-white px-4 py-2 rounded-xl hover:bg-gray-900 transition-colors"
+            >
+              {t('close')}
+            </button>
+          </div>
+        </Modal>
+      )}
+
       <div className="max-w-4xl mx-auto w-full p-4 sm:p-6 overflow-y-auto flex-1">
         {notification && (
           <div className="fixed top-4 right-4 z-50 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg animate-pulse">
@@ -767,22 +939,31 @@ function App() {
               </h1>
             </div>
             <div className="grid grid-cols-1 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">{t('yourPeerId')}</label>
-                <div className="flex">
-                  <input
-                    type="text"
-                    value={peerId}
-                    readOnly
-                    className="flex-1 p-2 border rounded-l-lg border-gray-300 font-mono text-sm"
-                  />
-                  <button
-                    onClick={copyPeerId}
-                    disabled={!peerId}
-                    className="bg-indigo-500 text-white px-4 py-2 rounded-r-lg hover:bg-indigo-600 disabled:opacity-50 transition-colors"
-                  >
-                    {t('copy')}
-                  </button>
+              <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 items-start">
+                <div>
+                  <label className="block text-sm font-medium mb-1">{t('yourPeerId')}</label>
+                  <div className="flex">
+                    <input
+                      type="text"
+                      value={peerId}
+                      readOnly
+                      className="flex-1 p-2 border rounded-l-lg border-gray-300 font-mono text-sm"
+                    />
+                    <button
+                      onClick={copyPeerId}
+                      disabled={!peerId}
+                      className="bg-indigo-500 text-white px-4 py-2 rounded-none hover:bg-indigo-600 disabled:opacity-50 transition-colors"
+                    >
+                      {t('copy')}
+                    </button>
+                    <button
+                      onClick={generateQrCode}
+                      disabled={!peerId}
+                      className="bg-indigo-500 text-white px-4 py-2 rounded-r-lg hover:bg-indigo-600 disabled:opacity-50 transition-colors"
+                    >
+                      {t('qrCode')}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -933,6 +1114,34 @@ function App() {
                     <button onClick={sendFile} className="text-green-600 hover:text-green-800 font-semibold transition-colors">✓ 送信</button>
                     <button onClick={() => setSelectedFile(null)} className="text-red-600 hover:text-red-800 font-semibold transition-colors">✕ キャンセル</button>
                   </div>
+                </div>
+              )}
+
+              {(fileTransferProgress.sendingState === 'sending' || fileTransferProgress.receivingState === 'receiving') && (
+                <div className="mt-2 space-y-3">
+                  {fileTransferProgress.sendingState === 'sending' && (
+                    <div className="p-3 bg-green-50 rounded-lg text-sm text-gray-800">
+                      <div className="flex justify-between mb-2">
+                        <span>送信中: {fileTransferProgress.sendingFileName || selectedFile?.name || ''}</span>
+                        <span>{fileTransferProgress.sendingCount}/{fileTransferProgress.sendingTotal}</span>
+                      </div>
+                      <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <div className="h-2 bg-green-500 rounded-full" style={{ width: `${fileTransferProgress.sendingTotal ? (fileTransferProgress.sendingCount / fileTransferProgress.sendingTotal) * 100 : 0}%` }} />
+                      </div>
+                    </div>
+                  )}
+
+                  {fileTransferProgress.receivingState === 'receiving' && (
+                    <div className="p-3 bg-blue-50 rounded-lg text-sm text-gray-800">
+                      <div className="flex justify-between mb-2">
+                        <span>受信中: {fileTransferProgress.receivingFileName}</span>
+                        <span>{fileTransferProgress.receivingCount}/{fileTransferProgress.receivingTotal}</span>
+                      </div>
+                      <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <div className="h-2 bg-blue-500 rounded-full" style={{ width: `${fileTransferProgress.receivingTotal ? (fileTransferProgress.receivingCount / fileTransferProgress.receivingTotal) * 100 : 0}%` }} />
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
