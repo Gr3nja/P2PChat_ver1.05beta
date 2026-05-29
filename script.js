@@ -164,6 +164,46 @@ function App() {
     return decryptFile(data, cryptoKey.current);
   };
 
+  const arrayBufferToBase64File = (buffer) => {
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    const chunkSize = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
+    }
+    return btoa(binary);
+  };
+
+  const createDataUrl = (buffer, mimeType = 'application/octet-stream') => {
+    const base64 = arrayBufferToBase64File(buffer);
+    return `data:${mimeType};base64,${base64}`;
+  };
+
+  const receiveFile = async (data) => {
+    if (!data || !data.encrypted || !data.iv) {
+      showNotification('fileTransferError');
+      return;
+    }
+    const decryptedBuffer = await decryptFileLocal(data);
+    if (!decryptedBuffer) {
+      showNotification('fileTransferError');
+      return;
+    }
+
+    const fileDataUrl = createDataUrl(decryptedBuffer, data.mimeType || 'application/octet-stream');
+    const incomingMessage = {
+      sender: 'remote',
+      isFile: true,
+      fileName: data.fileName || 'unknown',
+      mimeType: data.mimeType || 'application/octet-stream',
+      fileData: fileDataUrl,
+      text: data.fileName || 'file',
+      timestamp: formatTimestamp(),
+    };
+    setMessages(prev => [...prev, incomingMessage]);
+    showNotification('fileReceived');
+  };
+
   const formatTimestamp = () => {
     return new Date().toLocaleString(language === 'zh' ? 'zh-CN' : language, {
       year: 'numeric', month: '2-digit', day: '2-digit',
@@ -220,6 +260,19 @@ function App() {
         mimeType: selectedFile.type,
         ...encrypted,
       });
+
+      const fileBuffer = await selectedFile.arrayBuffer();
+      const fileDataUrl = createDataUrl(fileBuffer, selectedFile.type || 'application/octet-stream');
+      setMessages(prev => [...prev, {
+        sender: 'local',
+        isFile: true,
+        fileName: selectedFile.name,
+        mimeType: selectedFile.type,
+        fileData: fileDataUrl,
+        text: selectedFile.name,
+        timestamp: formatTimestamp(),
+      }]);
+      setSelectedFile(null);
     } catch (err) {
       console.error('File send error:', err);
       showNotification('fileTransferError');
