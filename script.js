@@ -145,6 +145,7 @@ function App() {
   });
   const [qrDataUrl, setQrDataUrl] = useState('');
   const [showQr, setShowQr] = useState(false);
+  const [activeReactionMsgId, setActiveReactionMsgId] = useState(null);
 
   useEffect(() => {
     localStorage.setItem('language', language);
@@ -198,6 +199,23 @@ function App() {
       ? window.location.href.split('?')[0].split('#')[0]
       : `${window.location.origin}${window.location.pathname}`;
     return `${baseUrl}?target=${encodeURIComponent(peerIdToShare)}`;
+  };
+
+  const reactionOptions = window.reactionOptions || [
+    { code: 'like', symbol: String.fromCodePoint(0x1F44D) },
+    { code: 'heart', symbol: String.fromCodePoint(0x2764, 0xFE0F) },
+  ];
+  const reactionSymbol = window.reactionSymbol || ((code) => code);
+
+  const createMessageId = () => {
+    return window.createMessageId ? window.createMessageId() : `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+  };
+
+  const sendReaction = (messageId, emoji) => {
+    if (!messageId || !connRef.current) return;
+    if (window.sendReaction) {
+      window.sendReaction(messageId, emoji, userName, connRef.current, setMessages);
+    }
   };
 
   const generateQrCode = async () => {
@@ -305,6 +323,7 @@ function App() {
 
     const fileDataUrl = createDataUrl(decryptedBuffer, data.mimeType || 'application/octet-stream');
     const incomingMessage = {
+      id: createMessageId(),
       sender: 'remote',
       isFile: true,
       fileName: data.fileName || 'unknown',
@@ -312,6 +331,7 @@ function App() {
       fileData: fileDataUrl,
       text: data.fileName || 'file',
       timestamp: formatTimestamp(),
+      reactions: {},
     };
     setMessages(prev => [...prev, incomingMessage]);
     showNotification('fileReceived');
@@ -412,6 +432,7 @@ function App() {
       const fileBuffer = await selectedFile.arrayBuffer();
       const fileDataUrl = createDataUrl(fileBuffer, selectedFile.type || 'application/octet-stream');
       setMessages(prev => [...prev, {
+        id: createMessageId(),
         sender: 'local',
         isFile: true,
         fileName: selectedFile.name,
@@ -419,6 +440,7 @@ function App() {
         fileData: fileDataUrl,
         text: selectedFile.name,
         timestamp: formatTimestamp(),
+        reactions: {},
       }]);
       setSelectedFile(null);
       setFileTransferProgress(prev => ({
@@ -587,7 +609,7 @@ function App() {
       }
     } else if (data.type === 'message') {
       const decryptedText = await decryptMessageLocal(data);
-      const incoming = { sender: 'remote', text: decryptedText, timestamp: formatTimestamp() };
+      const incoming = { id: data.id || createMessageId(), sender: 'remote', text: decryptedText, timestamp: formatTimestamp(), reactions: {} };
       if (data.replyTo) incoming.replyTo = data.replyTo;
       setMessages(prev => [...prev, incoming]);
       showNotification('newMessage');
@@ -598,6 +620,10 @@ function App() {
       setIsTyping(false);
     } else if (data.type === 'user-info') {
       setRemoteName(data.name);
+    } else if (data.type === 'reaction') {
+      if (window.applyReactionToMessage) {
+        window.applyReactionToMessage(data.messageId, data.code, data.from, setMessages);
+      }
     } else if (data.type === 'file-meta') {
       handleIncomingFileMeta(data);
     } else if (data.type === 'file-chunk') {
@@ -722,10 +748,11 @@ function App() {
     if (message && connRef.current && cryptoKey.current) {
       const encryptedMessage = await encryptMessageLocal(message);
       if (!encryptedMessage) return;
-      const wrapper = { type: 'message', ...encryptedMessage };
+      const messageId = createMessageId();
+      const wrapper = { type: 'message', id: messageId, ...encryptedMessage };
       if (replyTo) wrapper.replyTo = { text: replyTo.text, sender: replyTo.sender };
       connRef.current.send(wrapper);
-      setMessages(prev => [...prev, { sender: 'local', text: message, timestamp: formatTimestamp(), replyTo: replyTo ? { text: replyTo.text, sender: replyTo.sender } : undefined }]);
+      setMessages(prev => [...prev, { id: messageId, sender: 'local', text: message, timestamp: formatTimestamp(), replyTo: replyTo ? { text: replyTo.text, sender: replyTo.sender } : undefined, reactions: {} }]);
       setMessage('');
       setReplyTo(null);
       if (typingTimeoutRef.current) {
@@ -1017,12 +1044,17 @@ function App() {
             >
               {messages.map((msg, index) => (
                 <div
-                  key={index}
+                  key={msg.id ?? index}
                   onContextMenu={(e) => {
                     e.preventDefault();
                     if (msg.sender !== 'system') {
                       setReplyTo({ text: msg.text, sender: msg.sender, index });
                       setTimeout(() => inputRef.current?.focus(), 0);
+                    }
+                  }}
+                  onClick={() => {
+                    if (msg.sender !== 'system') {
+                      setActiveReactionMsgId(prev => prev === msg.id ? null : msg.id);
                     }
                   }}
                   className={`mb-3 message-animation ${msg.sender === 'local' ? 'text-left' : msg.sender === 'system' ? 'text-center' : 'text-right'}`}
@@ -1039,6 +1071,32 @@ function App() {
                       <FilePreview msg={msg} />
                     ) : (
                       <div className="break-words">{msg.text}</div>
+                    )}
+                    {msg.reactions && Object.keys(msg.reactions).length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-2 text-sm">
+                        {Object.entries(msg.reactions).map(([code, users]) => (
+                          <span key={code} className="inline-flex items-center gap-1 rounded-full bg-white/80 px-2 py-1 border border-gray-200">
+                            {reactionSymbol(code)} {users.length}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {msg.sender !== 'system' && (
+                      <div className={`mt-2 flex flex-wrap gap-2 transition-all duration-150 ${activeReactionMsgId === msg.id ? 'block' : 'hidden'}`}>
+                        {reactionOptions.map((reaction) => (
+                          <button
+                            key={reaction.code}
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              sendReaction(msg.id, reaction.code);
+                            }}
+                            className="rounded-full bg-white px-2 py-1 text-sm border border-gray-200 hover:bg-gray-100"
+                          >
+                            {reaction.symbol}
+                          </button>
+                        ))}
+                      </div>
                     )}
                   </div>
                 </div>
@@ -1270,7 +1328,7 @@ function FilePreview({ msg }) {
         {textModal && <TextModal text={fullText} fileName={msg.fileName} fileData={msg.fileData} onClose={() => setTextModal(false)} />}
         <div className="flex flex-col gap-1">
           <div className="text-xs font-semibold opacity-70 mb-1">{msg.fileName}</div>
-          <div className="bg-gray-900 text-green-300 rounded p-2 font-mono text-xs whitespace-pre-wrap break-all cursor-pointer hover:bg-gray-800"
+          <div className="bg-gray-900 text-white rounded p-2 font-mono text-xs whitespace-pre-wrap break-all cursor-pointer hover:bg-gray-800"
             style={{ maxWidth: '320px', textAlign: 'left', direction: 'ltr' }} onClick={() => setTextModal(true)}>
             {showLines.join('\n')}
             {hasMore && <div className="text-gray-500 mt-1">────────残り {remaining} 行────────</div>}
