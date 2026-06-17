@@ -825,7 +825,7 @@ function App() {
   }
 
   return (
-    <div className="h-screen overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col pb-[44px]">
+    <div className="flex-1 min-h-0 overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col pb-[calc(44px+env(safe-area-inset-bottom))]">
 
       {/* 着信UI */}
       {callStatus === 'receiving' && (
@@ -1124,7 +1124,7 @@ function App() {
                 </div>
               )}
 
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2 items-end">
                 {/* 通話ボタン（左端） */}
                 <button
                   onClick={startCall}
@@ -1143,7 +1143,7 @@ function App() {
                   onChange={handleMessageChange}
                   onKeyPress={handleKeyPress}
                   placeholder={t('inputPlaceholder')}
-                  className="flex-1 p-3 border rounded-lg border-gray-300"
+                  className="flex-1 min-w-0 p-3 border rounded-lg border-gray-300"
                 />
                 <button
                   onClick={sendMessage}
