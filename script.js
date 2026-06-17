@@ -825,7 +825,7 @@ function App() {
   }
 
   return (
-    <div className="flex-1 min-h-0 overflow-auto bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col pb-[calc(44px+env(safe-area-inset-bottom))]">
+    <div className="flex-1 min-h-0 overflow-auto bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col pb-[calc(120px+env(safe-area-inset-bottom))]">
 
       {/* 着信UI */}
       {callStatus === 'receiving' && (
@@ -1057,9 +1057,9 @@ function App() {
                       setActiveReactionMsgId(prev => prev === msg.id ? null : msg.id);
                     }
                   }}
-                  className={`mb-3 message-animation ${msg.sender === 'local' ? 'text-left' : msg.sender === 'system' ? 'text-center' : 'text-right'}`}
+                  className={`mb-3 message-animation ${msg.sender === 'local' ? 'text-right' : msg.sender === 'system' ? 'text-center' : 'text-left'}`}
                 >
-                  <div className={`block p-3 rounded-lg max-w-full sm:max-w-[85%] ${msg.sender === 'local' ? 'bg-blue-500 text-white' : msg.sender === 'system' ? 'bg-gray-200 text-gray-800' : 'bg-gray-100 text-gray-800'} shadow-md`}>
+                  <div className={`inline-block p-3 rounded-lg max-w-[85%] ${msg.sender === 'local' ? 'bg-blue-500 text-white' : msg.sender === 'system' ? 'bg-gray-200 text-gray-800' : 'bg-gray-100 text-gray-800'} shadow-md`}>
                     <div className="text-xs opacity-70 mb-1">{msg.timestamp}</div>
                     {msg.replyTo && (
                       <div className="mb-2 p-2 rounded bg-gray-50 text-sm text-gray-600 border-l-2 border-gray-200">
@@ -1113,7 +1113,7 @@ function App() {
               <div ref={messagesEndRef} />
             </div>
 
-            <div className="mb-2">
+            <div className="mb-2 sticky bottom-[calc(40px+env(safe-area-inset-bottom))] bg-white z-10 pt-2 pb-2">
               {replyTo && (
                 <div className="mb-2 p-2 bg-yellow-50 border-l-4 border-yellow-300 rounded flex items-start justify-between">
                   <div className="text-sm">
@@ -1124,7 +1124,7 @@ function App() {
                 </div>
               )}
 
-              <div className="flex flex-col sm:flex-row gap-2 items-end flex-wrap">
+              <div className="flex items-center gap-2 w-full">
                 {/* 通話ボタン（左端） */}
                 <button
                   onClick={startCall}
