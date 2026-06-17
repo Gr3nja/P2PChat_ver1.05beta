@@ -825,7 +825,7 @@ function App() {
   }
 
   return (
-    <div className="flex-1 min-h-0 overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col pb-[calc(44px+env(safe-area-inset-bottom))]">
+    <div className="flex-1 min-h-0 overflow-auto bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col pb-[calc(44px+env(safe-area-inset-bottom))]">
 
       {/* 着信UI */}
       {callStatus === 'receiving' && (
@@ -951,7 +951,7 @@ function App() {
         </Modal>
       )}
 
-      <div className="max-w-4xl mx-auto w-full p-4 sm:p-6 overflow-y-auto flex-1">
+      <div className="max-w-4xl mx-auto w-full p-4 sm:p-6 flex-1 min-h-0 flex flex-col overflow-auto">
         {notification && (
           <div className="fixed top-4 right-4 z-50 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg animate-pulse">
             {notification}
@@ -1026,7 +1026,7 @@ function App() {
         )}
 
         {connectionStatus === 'connected' && (
-          <div className="bg-white rounded-lg shadow-xl p-6">
+          <div className="bg-white rounded-lg shadow-xl p-6 flex flex-col min-h-0">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">
                 {t('chat')} {remoteName && `with ${remoteName}`}
@@ -1037,7 +1037,7 @@ function App() {
             </div>
 
             <div
-              className="h-[60vh] overflow-y-auto border-2 border-dashed p-4 mb-4 rounded-lg bg-gray-50"
+              className="flex-1 min-h-0 overflow-y-auto border-2 border-dashed p-4 mb-4 rounded-lg bg-gray-50"
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
@@ -1059,7 +1059,7 @@ function App() {
                   }}
                   className={`mb-3 message-animation ${msg.sender === 'local' ? 'text-left' : msg.sender === 'system' ? 'text-center' : 'text-right'}`}
                 >
-                  <div className={`inline-block p-3 rounded-lg max-w-xs sm:max-w-md ${msg.sender === 'local' ? 'bg-blue-500 text-white' : msg.sender === 'system' ? 'bg-gray-200 text-gray-800' : 'bg-gray-100 text-gray-800'} shadow-md`}>
+                  <div className={`block p-3 rounded-lg max-w-full sm:max-w-[85%] ${msg.sender === 'local' ? 'bg-blue-500 text-white' : msg.sender === 'system' ? 'bg-gray-200 text-gray-800' : 'bg-gray-100 text-gray-800'} shadow-md`}>
                     <div className="text-xs opacity-70 mb-1">{msg.timestamp}</div>
                     {msg.replyTo && (
                       <div className="mb-2 p-2 rounded bg-gray-50 text-sm text-gray-600 border-l-2 border-gray-200">
@@ -1124,7 +1124,7 @@ function App() {
                 </div>
               )}
 
-              <div className="flex flex-col sm:flex-row gap-2 items-end">
+              <div className="flex flex-col sm:flex-row gap-2 items-end flex-wrap">
                 {/* 通話ボタン（左端） */}
                 <button
                   onClick={startCall}
