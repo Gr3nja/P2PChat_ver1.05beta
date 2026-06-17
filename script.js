@@ -825,7 +825,7 @@ function App() {
   }
 
   return (
-    <div className="flex-1 min-h-0 overflow-auto bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col pb-[calc(120px+env(safe-area-inset-bottom))]">
+    <div className={`flex-1 min-h-0 ${isMobile ? 'overflow-auto pb-[calc(120px+env(safe-area-inset-bottom))]' : 'overflow-hidden pb-[44px]'} bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col`}>
 
       {/* 着信UI */}
       {callStatus === 'receiving' && (
@@ -951,7 +951,7 @@ function App() {
         </Modal>
       )}
 
-      <div className="max-w-4xl mx-auto w-full p-4 sm:p-6 flex-1 min-h-0 flex flex-col overflow-auto">
+      <div className={isMobile ? "max-w-4xl mx-auto w-full p-4 sm:p-6 flex-1 min-h-0 flex flex-col overflow-auto" : "max-w-4xl mx-auto w-full p-4 sm:p-6 overflow-y-auto flex-1"}>
         {notification && (
           <div className="fixed top-4 right-4 z-50 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg animate-pulse">
             {notification}
@@ -1037,7 +1037,7 @@ function App() {
             </div>
 
             <div
-              className="flex-1 min-h-0 overflow-y-auto border-2 border-dashed p-4 mb-4 rounded-lg bg-gray-50"
+              className={isMobile ? "flex-1 min-h-0 overflow-y-auto border-2 border-dashed p-4 mb-4 rounded-lg bg-gray-50" : "h-[60vh] overflow-y-auto border-2 border-dashed p-4 mb-4 rounded-lg bg-gray-50"}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
@@ -1113,7 +1113,7 @@ function App() {
               <div ref={messagesEndRef} />
             </div>
 
-            <div className="mb-2 sticky bottom-[calc(40px+env(safe-area-inset-bottom))] bg-white z-10 pt-2 pb-2">
+            <div className={isMobile ? "mb-2 sticky bottom-[calc(40px+env(safe-area-inset-bottom))] bg-white z-10 pt-2 pb-2" : "mb-2"}>
               {replyTo && (
                 <div className="mb-2 p-2 bg-yellow-50 border-l-4 border-yellow-300 rounded flex items-start justify-between">
                   <div className="text-sm">
@@ -1124,7 +1124,7 @@ function App() {
                 </div>
               )}
 
-              <div className="flex items-center gap-2 w-full">
+              <div className={isMobile ? "flex items-center gap-2 w-full" : "flex flex-col sm:flex-row gap-2 items-end"}>
                 {/* 通話ボタン（左端） */}
                 <button
                   onClick={startCall}
