@@ -208,7 +208,11 @@ function App() {
   const reactionSymbol = window.reactionSymbol || ((code) => code);
 
   const createMessageId = () => {
-    return window.createMessageId ? window.createMessageId() : `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    if (window.createMessageId) return window.createMessageId();
+    const arr = new Uint8Array(9);
+    crypto.getRandomValues(arr);
+    const hex = Array.from(arr).map(b => b.toString(16).padStart(2, '0')).join('');
+    return `${Date.now()}-${hex}`;
   };
 
   const sendReaction = (messageId, emoji) => {
@@ -230,7 +234,12 @@ function App() {
     }
   };
 
-  const generateTransferId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  const generateTransferId = () => {
+    const arr = new Uint8Array(10);
+    crypto.getRandomValues(arr);
+    const hex = Array.from(arr).map(b => b.toString(16).padStart(2, '0')).join('');
+    return `${Date.now()}-${hex}`;
+  };
 
   const chunkString = (text, size) => {
     const chunks = [];
@@ -645,8 +654,10 @@ function App() {
   useEffect(() => {
     const generateShortId = () => {
       const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+      const arr = new Uint8Array(6);
+      crypto.getRandomValues(arr);
       let id = '';
-      for (let i = 0; i < 6; i++) id += chars.charAt(Math.floor(Math.random() * chars.length));
+      for (let i = 0; i < 6; i++) id += chars[arr[i] % chars.length];
       return id;
     };
 
