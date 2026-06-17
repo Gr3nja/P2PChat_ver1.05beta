@@ -1059,7 +1059,7 @@ function App() {
                   }}
                   className={`mb-3 message-animation ${msg.sender === 'local' ? 'text-right' : msg.sender === 'system' ? 'text-center' : 'text-left'}`}
                 >
-                  <div className={`inline-block p-3 rounded-lg max-w-[85%] ${msg.sender === 'local' ? 'bg-blue-500 text-white' : msg.sender === 'system' ? 'bg-gray-200 text-gray-800' : 'bg-gray-100 text-gray-800'} shadow-md`}>
+                  <div className={`inline-block p-3 rounded-lg ${isMobile ? 'max-w-[85%]' : 'max-w-xs sm:max-w-md'} ${msg.sender === 'local' ? 'bg-blue-500 text-white' : msg.sender === 'system' ? 'bg-gray-200 text-gray-800' : 'bg-gray-100 text-gray-800'} shadow-md`}>
                     <div className="text-xs opacity-70 mb-1">{msg.timestamp}</div>
                     {msg.replyTo && (
                       <div className="mb-2 p-2 rounded bg-gray-50 text-sm text-gray-600 border-l-2 border-gray-200">
